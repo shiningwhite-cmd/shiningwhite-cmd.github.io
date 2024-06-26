@@ -1,1 +1,0 @@
-# shiningwhite.github.io
