@@ -8,15 +8,15 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Git configuration
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Set output
+        run: echo "::set-output name=exampleOutput::exampleValue"
+
+      - name: Save state
+        run: echo "::save-state name=exampleState::exampleValue"
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.0
