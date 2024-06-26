@@ -54,11 +54,11 @@ section {
 }
 
 .profile-image {
-    width: 400px;
-    height: 400px;
+    width: 425px;
+    height: 200px;
     overflow: hidden;
-    border-radius: 50%;
-    margin-right: 20px;
+    border-radius: 500px;
+    margin-right: 50px;
 }
 
 .profile-image img {
@@ -81,10 +81,12 @@ section {
     border: 1px solid #ccc;
     padding: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 12px;
 }
 
 .project-card img {
     width: 100%;
-    height: 150px;
+    height: 100%;
     object-fit: cover;
+    border-radius: 8px;
 }
