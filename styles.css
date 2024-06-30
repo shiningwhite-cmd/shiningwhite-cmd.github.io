@@ -63,6 +63,8 @@ header {
     font-style: normal;
     font-weight: 700;
     line-height: normal;
+    text-decoration: none;
+    cursor: url('./img/cursor.svg'), auto;
 }
 
 .header-menu:hover {
