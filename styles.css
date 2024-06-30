@@ -6,6 +6,8 @@ body, html {
     overflow-x: hidden;
     
     background-color: #0D0406;
+
+    cursor: url('./img/cursor.svg'), auto;
 }
 
 header {
@@ -94,15 +96,15 @@ section {
 }
 
 .profile-image {
-    width: 300px;
-    height: 300px;
+    width: 400px;
+    height: 400px;
     flex-shrink: 0;
     border-radius: 12px;
 }
 
 .profile-image img {
-    width: 300px;
-    height: 300px;
+    width: 400px;
+    height: 400px;
     object-fit: cover;
     border-radius: 12px;
 }
@@ -112,10 +114,20 @@ section {
 
     color: #FFF;
     font-family: "Source Han Sans CN";
-    font-size: 24px;
+    font-size: 20px;
     font-style: normal;
     font-weight: 400;
     line-height: normal;
+    line-height: 1.2;
+}
+
+.custom-email-link {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.custom-email-link:hover {
+    text-decoration: underline;
 }
 
 .project-cards {
