@@ -40,6 +40,7 @@ header {
 .header-menu {
     display: block;
     padding: 0px 20px 0px 20px;
+    height: 84px;
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
@@ -48,13 +49,14 @@ header {
     border-radius: 0px 0px 24px 24px;
     background: #FFF;
 
+    transition: height 0.3s ease-in-out;
 }
 
-.header-menu-dropbtn-unit {
-    display: flex;
-    /* justify-content: space-between; */
-    /* align-items: center; */
-    align-self: stretch;
+.header-menu hr {
+    border: #0D0406;
+    height: 1px;
+    color: #0D0406;
+    background-color: #0D0406;
 }
 
 .header-menu-unit a {
