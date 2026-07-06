@@ -804,15 +804,20 @@ function drawColorMask(canvas, rgb, mask) {
   putImageData(canvas, imageData);
 }
 
-function trimTransparentPadding(canvas, padding = 0, alphaThreshold = 10) {
-  const alpha = alphaMaskFromCanvas(canvas);
-  let minX = canvas.width;
-  let minY = canvas.height;
+function maskToCanvas(mask, width, height, rgb = [255, 255, 255]) {
+  const canvas = createCanvas(width, height);
+  drawColorMask(canvas, rgb, mask);
+  return canvas;
+}
+
+function findOpaqueBoundsFromMask(mask, width, height, alphaThreshold = 10) {
+  let minX = width;
+  let minY = height;
   let maxX = -1;
   let maxY = -1;
-  for (let y = 0; y < canvas.height; y += 1) {
-    for (let x = 0; x < canvas.width; x += 1) {
-      if (alpha[y * canvas.width + x] >= alphaThreshold) {
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (mask[y * width + x] >= alphaThreshold) {
         minX = Math.min(minX, x);
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x);
@@ -821,13 +826,27 @@ function trimTransparentPadding(canvas, padding = 0, alphaThreshold = 10) {
     }
   }
   if (maxX < 0 || maxY < 0) {
+    return null;
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function cropCanvasToBounds(canvas, bounds, padding = 0) {
+  if (!bounds) {
     return canvas;
   }
+  const { minX, minY, maxX, maxY } = bounds;
   const left = Math.max(0, minX - padding);
   const top = Math.max(0, minY - padding);
   const right = Math.min(canvas.width, maxX + 1 + padding);
   const bottom = Math.min(canvas.height, maxY + 1 + padding);
   return cropCanvas(canvas, left, top, right - left, bottom - top);
+}
+
+function trimTransparentPadding(canvas, padding = 0, alphaThreshold = 10) {
+  const alpha = alphaMaskFromCanvas(canvas);
+  const bounds = findOpaqueBoundsFromMask(alpha, canvas.width, canvas.height, alphaThreshold);
+  return cropCanvasToBounds(canvas, bounds, padding);
 }
 
 function suppressLowAlpha(canvas, threshold = 10) {
@@ -845,6 +864,25 @@ function suppressLowAlpha(canvas, threshold = 10) {
   return putImageData(result, imageData);
 }
 
+function trimCanvasPairByMask(contentCanvas, maskCanvas, padding = 0, alphaThreshold = 10) {
+  const mask = alphaMaskFromCanvas(maskCanvas);
+  const bounds = findOpaqueBoundsFromMask(mask, maskCanvas.width, maskCanvas.height, alphaThreshold);
+  if (!bounds) {
+    return { contentCanvas, maskCanvas };
+  }
+  return {
+    contentCanvas: cropCanvasToBounds(contentCanvas, bounds, padding),
+    maskCanvas: cropCanvasToBounds(maskCanvas, bounds, padding),
+  };
+}
+
+function buildPhysicalShadowMask(canvas, edgeDepthStrength) {
+  const alpha = thresholdMask(alphaMaskFromCanvas(canvas), 18);
+  const radius = Math.max(1, Math.round(1 + edgeDepthStrength * 2));
+  const expanded = expandMask(alpha, canvas.width, canvas.height, radius);
+  return maskToCanvas(expanded, canvas.width, canvas.height);
+}
+
 function composeForegroundBackground(landscapeCanvas, polaroidCanvas, sceneLight, options) {
   let background = resizeCanvas(landscapeCanvas, landscapeCanvas.width, landscapeCanvas.height);
   if (options.focusTarget === "polaroid") {
@@ -858,17 +896,36 @@ function composeForegroundBackground(landscapeCanvas, polaroidCanvas, sceneLight
     foreground = blurCanvas(foreground, 0.8);
   }
 
-  foreground = applyPerspectiveTilt(foreground, options.placementCorner, options.perspectiveStrength);
   const geometryPadding = Math.max(2, Math.round(2 + options.edgeDepthStrength * 6));
-  foreground = suppressLowAlpha(foreground, 10);
-  foreground = trimTransparentPadding(foreground, geometryPadding, 10);
-  const rotation = options.placementCorner === "left" ? -Math.abs(options.rotationDegrees) : Math.abs(options.rotationDegrees);
-  foreground = rotateCanvas(foreground, rotation);
   foreground = suppressLowAlpha(foreground, 10);
   foreground = trimTransparentPadding(foreground, geometryPadding, 10);
   foreground = addEdgeDepthEffects(foreground, sceneLight, options.edgeDepthStrength);
   foreground = suppressLowAlpha(foreground, 16);
   foreground = trimTransparentPadding(foreground, Math.max(1, Math.floor(geometryPadding / 2)), 16);
+  let shadowMaskCanvas = buildPhysicalShadowMask(foreground, options.edgeDepthStrength);
+
+  foreground = applyPerspectiveTilt(foreground, options.placementCorner, options.perspectiveStrength);
+  shadowMaskCanvas = applyPerspectiveTilt(shadowMaskCanvas, options.placementCorner, options.perspectiveStrength);
+  foreground = suppressLowAlpha(foreground, 10);
+  shadowMaskCanvas = suppressLowAlpha(shadowMaskCanvas, 10);
+  ({ contentCanvas: foreground, maskCanvas: shadowMaskCanvas } = trimCanvasPairByMask(
+    foreground,
+    shadowMaskCanvas,
+    geometryPadding,
+    10,
+  ));
+
+  const rotation = options.placementCorner === "left" ? -Math.abs(options.rotationDegrees) : Math.abs(options.rotationDegrees);
+  foreground = rotateCanvas(foreground, rotation);
+  shadowMaskCanvas = rotateCanvas(shadowMaskCanvas, rotation);
+  foreground = suppressLowAlpha(foreground, 12);
+  shadowMaskCanvas = suppressLowAlpha(shadowMaskCanvas, 12);
+  ({ contentCanvas: foreground, maskCanvas: shadowMaskCanvas } = trimCanvasPairByMask(
+    foreground,
+    shadowMaskCanvas,
+    Math.max(1, Math.floor(geometryPadding / 2)),
+    12,
+  ));
 
   const horizontalOverflow = Math.round(background.width * options.edgeOverflowRatio);
   const bottomOverflow = Math.round(background.height * options.bottomOverflowRatio);
@@ -880,7 +937,7 @@ function composeForegroundBackground(landscapeCanvas, polaroidCanvas, sceneLight
   const y = background.height - foreground.height + bottomOverflow - inwardShiftY;
 
   const { dropShadow, contactShadow } = createShadows(
-    foreground,
+    shadowMaskCanvas,
     sceneLight,
     Math.max(18, Math.floor(background.width / 55)),
     options.edgeDepthStrength,
