@@ -936,7 +936,7 @@ function composeForegroundBackground(landscapeCanvas, polaroidCanvas, sceneLight
     : -horizontalOverflow + inwardShiftX;
   const y = background.height - foreground.height + bottomOverflow - inwardShiftY;
 
-  const { dropShadow, contactShadow } = createShadows(
+  const { dropShadow, contactShadow, offsetX: shadowOffsetX, offsetY: shadowOffsetY } = createShadows(
     shadowMaskCanvas,
     sceneLight,
     Math.max(18, Math.floor(background.width / 55)),
@@ -948,8 +948,8 @@ function composeForegroundBackground(landscapeCanvas, polaroidCanvas, sceneLight
   const result = createCanvas(background.width, background.height);
   const ctx = result.getContext("2d");
   ctx.drawImage(background, 0, 0);
-  ctx.drawImage(dropShadow, x, y);
-  ctx.drawImage(contactShadow, x, y);
+  ctx.drawImage(dropShadow, x + shadowOffsetX, y + shadowOffsetY);
+  ctx.drawImage(contactShadow, x + shadowOffsetX, y + shadowOffsetY);
   ctx.drawImage(foreground, x, y);
   return result;
 }
@@ -1033,33 +1033,47 @@ function rotateCanvas(canvas, degrees) {
 }
 
 function createShadows(canvas, sceneLight, blurRadius, edgeDepthStrength, rotationDegrees, perspectiveStrength) {
-  const alpha = thresholdMask(alphaMaskFromCanvas(canvas), 16);
   const [lightX, lightY] = sceneLight.lightDirection;
   const shadowDx = Math.round(-lightX * Math.max(8, canvas.width * 0.035));
   const shadowDy = Math.round(-lightY * Math.max(10, canvas.height * 0.045));
   const rotationFactor = Math.min(Math.abs(rotationDegrees) / 8, 1);
   const perspectiveFactor = Math.min(perspectiveStrength / 0.1, 1);
   const geometryFactor = 0.35 + 0.35 * rotationFactor + 0.3 * perspectiveFactor;
+  const contactBlur = Math.max(1, 1 + edgeDepthStrength * 2 + geometryFactor * 1.5);
+  const shadowPadding = Math.max(
+    6,
+    Math.ceil(
+      blurRadius + contactBlur + Math.max(Math.abs(shadowDx), Math.abs(shadowDy)) + edgeDepthStrength * 6,
+    ),
+  );
 
-  let contactMask = blurMask(alpha, canvas.width, canvas.height, Math.max(1, 1 + edgeDepthStrength * 2 + geometryFactor * 1.5));
+  const paddedMask = padCanvas(canvas, shadowPadding);
+  const alpha = thresholdMask(alphaMaskFromCanvas(paddedMask), 16);
+
+  let contactMask = blurMask(alpha, paddedMask.width, paddedMask.height, contactBlur);
   contactMask = brightenMask(contactMask, 0.12 + edgeDepthStrength * 0.48);
   contactMask = offsetMaskWithoutWrap(
     contactMask,
-    canvas.width,
-    canvas.height,
+    paddedMask.width,
+    paddedMask.height,
     Math.round(shadowDx * (0.18 + geometryFactor * 0.12)),
     Math.round(Math.max(1, shadowDy * (0.18 + geometryFactor * 0.12)) + edgeDepthStrength * 2.2),
   );
 
-  let dropMask = blurMask(alpha, canvas.width, canvas.height, blurRadius);
+  let dropMask = blurMask(alpha, paddedMask.width, paddedMask.height, blurRadius);
   dropMask = brightenMask(dropMask, 0.16 + edgeDepthStrength * 0.16);
-  dropMask = offsetMaskWithoutWrap(dropMask, canvas.width, canvas.height, shadowDx, shadowDy);
+  dropMask = offsetMaskWithoutWrap(dropMask, paddedMask.width, paddedMask.height, shadowDx, shadowDy);
 
-  const dropShadow = createCanvas(canvas.width, canvas.height);
-  const contactShadow = createCanvas(canvas.width, canvas.height);
+  const dropShadow = createCanvas(paddedMask.width, paddedMask.height);
+  const contactShadow = createCanvas(paddedMask.width, paddedMask.height);
   drawColorMask(dropShadow, [28, 22, 18], dropMask);
   drawColorMask(contactShadow, [24, 20, 18], contactMask);
-  return { dropShadow, contactShadow };
+  return {
+    dropShadow,
+    contactShadow,
+    offsetX: -shadowPadding,
+    offsetY: -shadowPadding,
+  };
 }
 
 function offsetMaskWithoutWrap(mask, width, height, offsetX, offsetY) {
