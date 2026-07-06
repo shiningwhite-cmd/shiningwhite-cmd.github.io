@@ -1,0 +1,247 @@
+:root {
+  --bg: #f0e5d4;
+  --panel: rgba(250, 244, 235, 0.82);
+  --panel-border: rgba(109, 77, 44, 0.16);
+  --text: #2b1f13;
+  --muted: #6d5b48;
+  --accent: #9e5c2a;
+  --accent-dark: #6e3812;
+  --shadow: rgba(66, 40, 16, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(255, 246, 228, 0.92), transparent 36%),
+    linear-gradient(135deg, #d7b791 0%, #f5ead8 44%, #c89f74 100%);
+}
+
+.page {
+  width: min(1040px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+
+.hero {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.3rem, 6vw, 4.8rem);
+  line-height: 0.98;
+}
+
+.intro {
+  width: min(720px, 100%);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.workspace {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: 1fr;
+}
+
+.panel,
+.result-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.panel {
+  padding: 24px;
+}
+
+.controls-panel,
+.preview-panel {
+  align-self: start;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.field-hint {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.control-group {
+  display: grid;
+  gap: 16px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(104, 70, 38, 0.14);
+}
+
+.group-title {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+input,
+select,
+button,
+a {
+  font: inherit;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(104, 70, 38, 0.18);
+  background: rgba(255, 251, 245, 0.96);
+}
+
+input[type="range"] {
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  accent-color: var(--accent);
+}
+
+button,
+#download-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+  min-width: 180px;
+  padding: 14px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff9f1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  box-shadow: 0 16px 30px rgba(94, 43, 10, 0.22);
+}
+
+button:hover,
+#download-link:hover {
+  transform: translateY(-1px);
+}
+
+.status {
+  margin-top: 18px;
+  color: var(--muted);
+}
+
+.result-card {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+
+.preview-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.preview-label,
+.preview-note {
+  margin: 0;
+}
+
+.preview-label {
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.preview-note {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.result-stage {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+
+#result-image {
+  width: 100%;
+  display: block;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 0;
+  background: transparent;
+}
+
+#download-link[hidden] {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .workspace {
+    grid-template-columns: minmax(340px, 0.92fr) minmax(420px, 1.08fr);
+    align-items: start;
+  }
+
+  .preview-panel {
+    position: sticky;
+    top: 28px;
+  }
+}
+
+@media (max-width: 959px) {
+  .page {
+    width: min(100vw - 20px, 100%);
+    padding-top: 28px;
+  }
+
+  .panel,
+  .result-card {
+    border-radius: 18px;
+  }
+
+  .result-stage {
+    aspect-ratio: 1 / 1;
+  }
+}
