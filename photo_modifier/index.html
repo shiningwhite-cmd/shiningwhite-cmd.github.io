@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Polaroid Scene Composer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p class="eyebrow">Photo Modifier</p>
+        <h1>把拍立得“举”到风景前</h1>
+        <p class="intro">
+          上传风景图和拍立得扫描图，页面会直接在浏览器里完成景深、色调、阴影、反光和画中画处理，实时输出可下载成片。
+        </p>
+      </section>
+
+      <section class="workspace">
+        <div class="panel controls-panel">
+          <form id="process-form" class="form">
+            <label class="field">
+              <span>风景图片</span>
+              <input type="file" name="landscape" accept="image/*" required />
+            </label>
+
+            <label class="field">
+              <span>拍立得扫描图</span>
+              <input type="file" name="polaroid" accept="image/*" required />
+            </label>
+
+            <label class="field">
+              <span>焦点位置</span>
+              <select name="focus_target">
+                <option value="polaroid">对焦拍立得，轻微虚化背景</option>
+                <option value="background">对焦背景，轻微虚化拍立得</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>拍立得位置</span>
+              <select name="placement_corner">
+                <option value="left">左下角</option>
+                <option value="right">右下角</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>拍立得大小</span>
+              <input
+                id="size-range"
+                type="range"
+                name="polaroid_height_ratio"
+                min="0.0625"
+                max="0.5"
+                step="0.0125"
+                value="0.5"
+              />
+              <span class="field-hint" id="size-range-label">当前高度约为背景高度的 50%</span>
+            </label>
+
+            <label class="field">
+              <span>往画面中心</span>
+              <input id="center-pull-range" type="range" name="center_pull_strength" min="0" max="1" step="0.05" value="0.1" />
+              <span class="field-hint" id="center-pull-range-label">当前强度 10%</span>
+            </label>
+
+            <div class="control-group">
+              <p class="group-title">效果强度</p>
+
+              <label class="field">
+                <span>透视强度</span>
+                <input id="perspective-range" type="range" name="perspective_strength" min="0" max="0.1" step="0.005" value="0.01" />
+                <span class="field-hint" id="perspective-range-label">当前强度 1.0%</span>
+              </label>
+
+              <label class="field">
+                <span>光线匹配</span>
+                <input id="light-match-range" type="range" name="light_match_strength" min="0" max="1" step="0.05" value="0.7" />
+                <span class="field-hint" id="light-match-range-label">当前强度 70%</span>
+              </label>
+
+              <label class="field">
+                <span>环境染色</span>
+                <input id="ambient-tint-range" type="range" name="ambient_tint_strength" min="0" max="1" step="0.05" value="0.35" />
+                <span class="field-hint" id="ambient-tint-range-label">当前强度 35%</span>
+              </label>
+
+              <label class="field">
+                <span>反光强度</span>
+                <input id="reflection-range" type="range" name="reflection_strength" min="0" max="1" step="0.05" value="0.55" />
+                <span class="field-hint" id="reflection-range-label">当前强度 55%</span>
+              </label>
+
+              <label class="field">
+                <span>胶片感强度</span>
+                <input id="film-range" type="range" name="film_strength" min="0" max="1" step="0.05" value="0.5" />
+                <span class="field-hint" id="film-range-label">当前强度 50%</span>
+              </label>
+
+              <label class="field">
+                <span>边缘立体感与阴影</span>
+                <input id="edge-depth-range" type="range" name="edge_depth_strength" min="0" max="1" step="0.05" value="0.55" />
+                <span class="field-hint" id="edge-depth-range-label">当前强度 55%</span>
+              </label>
+            </div>
+
+            <button type="submit" id="submit-button">生成效果</button>
+          </form>
+
+          <div class="status" id="status">等待上传</div>
+        </div>
+
+        <div class="result-card preview-panel" id="result">
+          <div class="preview-copy">
+            <p class="preview-label">结果预览</p>
+            <p class="preview-note" id="preview-note">生成完成后，右侧会显示浏览器本地实时生成的最终合成图。</p>
+          </div>
+          <div class="result-stage">
+            <img id="result-image" alt="处理结果预览" />
+          </div>
+          <a id="download-link" download="polaroid-result.jpg">下载最终图片</a>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
