@@ -676,7 +676,7 @@ function addEdgeDepthEffects(canvas, sceneLight, edgeDepthStrength) {
   }
   const padding = Math.max(2, Math.round(Math.min(canvas.width, canvas.height) * (0.012 + 0.028 * edgeDepthStrength)));
   const padded = padCanvas(canvas, padding);
-  const alpha = alphaMaskFromCanvas(padded);
+  const alpha = thresholdMask(alphaMaskFromCanvas(padded), 14);
   const thicknessPixels = 1 + edgeDepthStrength * 6;
   const [lightX, lightY] = sceneLight.lightDirection;
   const depthDx = Math.round(-lightX * thicknessPixels);
@@ -715,6 +715,14 @@ function alphaMaskFromCanvas(canvas) {
     alpha[p] = data[i + 3];
   }
   return alpha;
+}
+
+function thresholdMask(mask, threshold) {
+  const result = new Uint8ClampedArray(mask.length);
+  for (let i = 0; i < mask.length; i += 1) {
+    result[i] = mask[i] >= threshold ? 255 : 0;
+  }
+  return result;
 }
 
 function expandMask(mask, width, height, radius) {
@@ -796,7 +804,7 @@ function drawColorMask(canvas, rgb, mask) {
   putImageData(canvas, imageData);
 }
 
-function trimTransparentPadding(canvas, padding = 0) {
+function trimTransparentPadding(canvas, padding = 0, alphaThreshold = 10) {
   const alpha = alphaMaskFromCanvas(canvas);
   let minX = canvas.width;
   let minY = canvas.height;
@@ -804,7 +812,7 @@ function trimTransparentPadding(canvas, padding = 0) {
   let maxY = -1;
   for (let y = 0; y < canvas.height; y += 1) {
     for (let x = 0; x < canvas.width; x += 1) {
-      if (alpha[y * canvas.width + x] > 0) {
+      if (alpha[y * canvas.width + x] >= alphaThreshold) {
         minX = Math.min(minX, x);
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x);
@@ -822,6 +830,21 @@ function trimTransparentPadding(canvas, padding = 0) {
   return cropCanvas(canvas, left, top, right - left, bottom - top);
 }
 
+function suppressLowAlpha(canvas, threshold = 10) {
+  const result = resizeCanvas(canvas, canvas.width, canvas.height);
+  const imageData = getImageData(result);
+  const { data } = imageData;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < threshold) {
+      data[i] = 0;
+      data[i + 1] = 0;
+      data[i + 2] = 0;
+      data[i + 3] = 0;
+    }
+  }
+  return putImageData(result, imageData);
+}
+
 function composeForegroundBackground(landscapeCanvas, polaroidCanvas, sceneLight, options) {
   let background = resizeCanvas(landscapeCanvas, landscapeCanvas.width, landscapeCanvas.height);
   if (options.focusTarget === "polaroid") {
@@ -837,12 +860,15 @@ function composeForegroundBackground(landscapeCanvas, polaroidCanvas, sceneLight
 
   foreground = applyPerspectiveTilt(foreground, options.placementCorner, options.perspectiveStrength);
   const geometryPadding = Math.max(2, Math.round(2 + options.edgeDepthStrength * 6));
-  foreground = trimTransparentPadding(foreground, geometryPadding);
+  foreground = suppressLowAlpha(foreground, 10);
+  foreground = trimTransparentPadding(foreground, geometryPadding, 10);
   const rotation = options.placementCorner === "left" ? -Math.abs(options.rotationDegrees) : Math.abs(options.rotationDegrees);
   foreground = rotateCanvas(foreground, rotation);
-  foreground = trimTransparentPadding(foreground, geometryPadding);
+  foreground = suppressLowAlpha(foreground, 10);
+  foreground = trimTransparentPadding(foreground, geometryPadding, 10);
   foreground = addEdgeDepthEffects(foreground, sceneLight, options.edgeDepthStrength);
-  foreground = trimTransparentPadding(foreground, Math.max(1, Math.floor(geometryPadding / 2)));
+  foreground = suppressLowAlpha(foreground, 16);
+  foreground = trimTransparentPadding(foreground, Math.max(1, Math.floor(geometryPadding / 2)), 16);
 
   const horizontalOverflow = Math.round(background.width * options.edgeOverflowRatio);
   const bottomOverflow = Math.round(background.height * options.bottomOverflowRatio);
@@ -950,7 +976,7 @@ function rotateCanvas(canvas, degrees) {
 }
 
 function createShadows(canvas, sceneLight, blurRadius, edgeDepthStrength, rotationDegrees, perspectiveStrength) {
-  const alpha = alphaMaskFromCanvas(canvas);
+  const alpha = thresholdMask(alphaMaskFromCanvas(canvas), 16);
   const [lightX, lightY] = sceneLight.lightDirection;
   const shadowDx = Math.round(-lightX * Math.max(8, canvas.width * 0.035));
   const shadowDy = Math.round(-lightY * Math.max(10, canvas.height * 0.045));
